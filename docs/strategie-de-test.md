@@ -19,9 +19,12 @@
 | nocturne | charge, ZAP complet | p95 < 300 ms, erreurs < 1 % |
 
 ## 3. Règles pour les tests générés par IA
-- Un test généré est **relu** avant fusion (marqueur `@pytest.mark.generated`).
-- Il doit échouer si on casse la règle qu'il prétend vérifier (vérifié par mutation).
-- Pas de secret ni de donnée client dans les prompts.
+- **Relecture humaine obligatoire avant fusion** : tout fichier dans `tests/generated/` est relu ligne par ligne avant merge sur `main` (vérification de l'absence d'hallucinations, de la pertinence des `assert`, de la conformité à `specs/pricing.feature` et du diagnostic des `# DIVERGENCE SPEC/CODE`).
+- **Marqueur `@pytest.mark.generated`** : obligatoire en tête de chaque fichier généré (`pytestmark = [pytest.mark.generated, pytest.mark.unit]`) pour tracer son origine, isoler son exécution en CI et garantir qu'aucun test généré non relu ne passe en production.
+- **Validation par mutation (quality gate)** : la couverture seule ne suffit pas ; un test généré doit échouer si on casse la règle métier qu'il vérifie (`python ai_tools/mutation_score.py`, cible ≥ 85 % — score mesuré à l'Atelier 3 : **87 %** pour le LLM contre **62 %** pour le générateur déterministe `offline`).
+- **Contexte source obligatoire dans le prompt** : toute génération par LLM doit inclure le code source sous test en plus de la spécification (sans code source, le taux d'échec par hallucination atteint 26/28 tests).
+- **Données sensibles interdites dans les prompts** : aucun secret (clé API, token, mot de passe), donnée personnelle client (RGPD) ou code propriétaire confidentiel ne doit être transmis à un fournisseur externe ; pour tout contexte sensible, basculer sur un modèle local (`LLM_PROVIDER=ollama`) ou le moteur déterministe (`LLM_PROVIDER=offline`).
+- **Responsabilité de l'auteur de la PR** : le développeur qui ouvre la Pull Request reste pleinement responsable de la validité et de la maintenance des tests générés soumis, au même titre que du code écrit manuellement.
 
 ## 4. Gestion des tests instables (flaky)
 - Détection : `ai_tools/test_history.py` (score ≥ 0,6).
