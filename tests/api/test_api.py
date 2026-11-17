@@ -14,4 +14,8 @@ def test_cart_quote_nominal_et_erreurs(client):
     assert ok.json()["total"] == "27.40"
 
     assert client.post("/cart/quote", json={"items": [{"product_id": "inconnu", "qty": 1}]}).status_code == 404
-    assert client.post("/cart/quote", json={"items": [{"product_id": "mug", "qty": 1}], "coupon": "NOEL"}).status_code == 422
+    bad_coupon = client.post(
+        "/cart/quote",
+        json={"items": [{"product_id": "mug", "qty": 1}], "coupon": "NOEL"},
+    )
+    assert bad_coupon.status_code == 422
