@@ -1,0 +1,51 @@
+stages:
+  - lint
+  - test
+  - package
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  key: "${CI_COMMIT_REF_SLUG}"
+  paths:
+    - .cache/pip
+
+lint:
+  stage: lint
+  image: python:3.12-slim
+  script:
+    - pip install -r requirements-dev.txt
+    - ruff check .
+
+test:
+  stage: test
+  image: python:${PYTHON_VERSION}-slim
+  needs: ["lint"]
+  parallel:
+    matrix:
+      - PYTHON_VERSION: ["3.11", "3.12", "3.13"]
+  script:
+    - mkdir -p reports
+    - pip install -r requirements-dev.txt
+    - pytest -m "unit or api" -n auto --cov --cov-report=xml --cov-report=html --cov-fail-under=85 --junitxml=reports/junit.xml
+  coverage: '/TOTAL.*\s+(\d+%)$/'
+  artifacts:
+    when: always
+    paths:
+      - reports/
+      - htmlcov/
+    reports:
+      junit: reports/junit.xml
+
+docker:
+  stage: package
+  image: docker:27
+  services:
+    - docker:27-dind
+  needs: ["test"]
+  script:
+    - docker build -t minishop:ci .
+    - docker run -d --name minishop-test -p 8000:8000 minishop:ci
+    - sleep 3
+    - docker exec minishop-test python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
