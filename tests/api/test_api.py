@@ -1,3 +1,6 @@
+import pytest
+
+pytestmark = pytest.mark.api
 
 
 def test_produit_detail_et_404(client):
