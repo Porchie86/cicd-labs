@@ -143,5 +143,3 @@ def test_student15_panier_uniquement_remise_volume():
     """Si toutes les lignes ont la remise volume, STUDENT15 donne 0.00 € de remise."""
     q = quote([{"product_id": "sticker", "qty": 10}], coupon="STUDENT15")
     assert q.discount == Decimal("0.00")
-
-unused_var = 42
